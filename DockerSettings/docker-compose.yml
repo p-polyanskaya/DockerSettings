@@ -47,7 +47,8 @@ services:
     entrypoint: [ '/bin/sh', '-c' ]
     command: |
       "
-      kafka-topics.sh --create --topic test2-topic --bootstrap-server kafka:9092 --replication-factor 1 --partitions 4
+      kafka-topics.sh --create --topic analyze_results --bootstrap-server kafka:9092 --replication-factor 1 --partitions 4
+      kafka-topics.sh --create --topic messages_to_analyze --bootstrap-server kafka:9092 --replication-factor 1 --partitions 4
       "
       
   postgres:
@@ -59,6 +60,17 @@ services:
     ports:
       - "5432:5432"
       
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./etc/prometheus/:/etc/prometheus/
+      - ./data/prometheus/:/prometheus/
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    
 networks:
   kafka-net:
     driver: bridge

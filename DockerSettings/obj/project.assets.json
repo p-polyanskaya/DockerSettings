@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/polina/RiderProjects/Docker/DockerSettings/DockerSettings.csproj",
+      "projectUniqueName": "/Users/polina/Documents/GitHub/DockerSettings/DockerSettings/DockerSettings.csproj",
       "projectName": "DockerSettings",
-      "projectPath": "/Users/polina/RiderProjects/Docker/DockerSettings/DockerSettings.csproj",
+      "projectPath": "/Users/polina/Documents/GitHub/DockerSettings/DockerSettings/DockerSettings.csproj",
       "packagesPath": "/Users/polina/.nuget/packages/",
-      "outputPath": "/Users/polina/RiderProjects/Docker/DockerSettings/obj/",
+      "outputPath": "/Users/polina/Documents/GitHub/DockerSettings/DockerSettings/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/polina/.nuget/NuGet/NuGet.Config"

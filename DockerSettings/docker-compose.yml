@@ -1,15 +1,14 @@
 version: '3.8'
-    
+
 services:
   
   cache:
-    image: redis
+    image: redis:latest
     restart: always
     ports:
       - '6379:6379'
-    volumes:
-      - cache:/data
-        
+    command: [ "redis-server" ]
+  
   mongoDb:
     image: mongo
     container_name: mongo_container
@@ -17,15 +16,13 @@ services:
       - "27017:27017"
   
   zookeeper:
-    image: bitnami/zookeeper
+    image: zookeeper:latest
     ports:
       - "2181:2181"
-    environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
     restart: always
-
+  
   kafka:
-    image: bitnami/kafka
+    image: bitnami/kafka:latest
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -50,8 +47,17 @@ services:
       kafka-topics.sh --create --topic analyze_results --bootstrap-server kafka:9092 --replication-factor 1 --partitions 4
       kafka-topics.sh --create --topic messages_to_analyze --bootstrap-server kafka:9092 --replication-factor 1 --partitions 4
       "
-      
-  postgres:
+  
+  telegram_bot_postgres:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "course_db"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    ports:
+      - "5433:5432"
+  
+  analyzer_postgres:
     image: postgres:13.3
     environment:
       POSTGRES_DB: "course_db"
@@ -59,7 +65,16 @@ services:
       POSTGRES_PASSWORD: "postgres"
     ports:
       - "5432:5432"
-      
+  
+  analysis_storage_postgres:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "course_db"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    ports:
+      - "5434:5432"
+  
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -70,11 +85,80 @@ services:
       - ./data/prometheus/:/prometheus/
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-    
-networks:
-  kafka-net:
-    driver: bridge
-    
-volumes:
-  cache:
-    driver: local
+  
+  stream-data-analyzer:
+    image: papolyanskaya/stream-data-analyzer:3002
+    ports:
+      - "7005:80"
+      - "5005:8080"
+    depends_on:
+      - analyzer_postgres
+      - kafka
+      - init-kafka
+      - cache
+      - telegram_bot_postgres
+      - analysis_storage_postgres
+      - prometheus
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - Kestrel__Endpoints__Http__Url=http://[::]:80
+      - Kestrel__Endpoints__Http__Protocols=Http1
+      - Kestrel__Endpoints__gRPC__Url=http://[::]:8080
+      - Kestrel__Endpoints__gRPC__Protocols=Http2
+        
+  analysis-result-storage:
+    image: papolyanskaya/analysis-result-storage:3
+    ports:
+      - "7006:80"
+      - "5006:8080"
+    depends_on:
+      - analyzer_postgres
+      - kafka
+      - init-kafka
+      - cache
+      - telegram_bot_postgres
+      - analysis_storage_postgres
+      - prometheus
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - Kestrel__Endpoints__Http__Url=http://[::]:80
+      - Kestrel__Endpoints__Http__Protocols=Http1
+      - Kestrel__Endpoints__gRPC__Url=http://[::]:8080
+      - Kestrel__Endpoints__gRPC__Protocols=Http2
+       
+  data-sender:
+    image: papolyanskaya/data-sender:4
+    ports:
+      - "7008:80"
+      - "5008:8080"
+    depends_on:
+      - analyzer_postgres
+      - kafka
+      - init-kafka
+      - cache
+      - telegram_bot_postgres
+      - analysis_storage_postgres
+      - prometheus
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - Kestrel__Endpoints__Http__Url=http://[::]:80
+      - Kestrel__Endpoints__Http__Protocols=Http1
+      - Kestrel__Endpoints__gRPC__Url=http://[::]:8080
+      - Kestrel__Endpoints__gRPC__Protocols=Http2
+  
+  telegram-bot:
+    image: papolyanskaya/telegram-bot:4
+    ports:
+      - "7007:80"
+    depends_on:
+      - analyzer_postgres
+      - kafka
+      - init-kafka
+      - cache
+      - telegram_bot_postgres
+      - analysis_storage_postgres
+      - prometheus
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - Kestrel__Endpoints__Http__Url=http://[::]:80
+      - Kestrel__Endpoints__Http__Protocols=Http1

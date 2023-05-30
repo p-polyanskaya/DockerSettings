@@ -108,7 +108,7 @@ services:
       - Kestrel__Endpoints__gRPC__Protocols=Http2
         
   analysis-result-storage:
-    image: papolyanskaya/analysis-result-storage:3
+    image: papolyanskaya/analysis-result-storage:4
     ports:
       - "7006:80"
       - "5006:8080"
